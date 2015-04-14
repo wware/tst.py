@@ -6,27 +6,25 @@ import urllib2
 
 
 ## Build the C code and import it using ctypes.
-os.system("gcc -g -shared -DLIB=1 -o libtst.so tst.c")
+assert os.system("gcc -g -shared -DLIB=1 -o libtst.so tst.c") == 0
 tst = ctypes.cdll.LoadLibrary("./libtst.so")
 
 
 def search_gutenberg_text(name, url):
-    t1 = time.time()
     text = urllib2.urlopen(url).read()
+    t1 = time.time()
+    tst.scan(text)
     t2 = time.time()
-    [tst.insert(word) for word in re.split("\W+", text)]
-    t3 = time.time()
     for word in ("cats", "galactic", "whale", "parsec", "Valjean", "Sobriquet"):
         print "The word \"{0}\" {1} in the text of {2}.".format(
             word,
             tst.search(word) and "is" or "is NOT",
             name
         )
-    t4 = time.time()
+    t3 = time.time()
     print "{0} seconds to build the tree\n{1} seconds of searching\n".format(
-        # t2 - t1,    I don't care about the slow HTTP GET
-        t3 - t2,
-        t4 - t3
+        t2 - t1,
+        t3 - t2
     )
     tst.cleanup()
 

@@ -2,6 +2,7 @@
 // and search operations
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #define MAX 50
 
 // A node of ternary search tree
@@ -45,7 +46,9 @@ static struct Node* newNode(char data)
     return temp;
 }
 
-static void insert_helper(struct Node **root, char *word)
+typedef int (*word_end_func)(char);
+
+static int insert_helper(struct Node **root, char *word, word_end_func endfunc)
 {
     // Base Case: Tree is empty
     if (!(*root))
@@ -54,30 +57,53 @@ static void insert_helper(struct Node **root, char *word)
     // If current character of word is smaller than root's character,
     // then insert this word in left subtree of root
     if ((*word) < (*root)->data)
-        insert_helper(&( (*root)->left ), word);
+        return insert_helper(&( (*root)->left ), word, endfunc);
 
     // If current character of word is greate than root's character,
     // then insert this word in right subtree of root
     else if ((*word) > (*root)->data)
-        insert_helper(&( (*root)->right ), word);
+        return insert_helper(&( (*root)->right ), word, endfunc);
 
     // If current character of word is same as root's character,
     else
     {
-        if (*(word+1))
-            insert_helper(&( (*root)->eq ), word+1);
-
         // the last character of the word
-        else
+        if (endfunc(*(word + 1))) {
             (*root)->isEndOfString = 1;
+            return 1;
+        }
+
+        else {
+            return insert_helper(&( (*root)->eq ), word + 1, endfunc) + 1;
+        }
     }
+}
+
+static int is_null(char c)
+{
+    return c == '\0';
+}
+
+static int is_non_alphabetic(char c)
+{
+    return c < 'A' || (c > 'Z' && c < 'a') || c > 'z';
 }
 
 // Function to insert a new word in a Ternary Search Tree
 void insert(char *word)
 {
-    insert_helper(&root, word);
+    insert_helper(&root, word, is_null);
 }
+
+void scan(char *big_text)
+{
+    while (*big_text) {
+        while (*big_text && is_non_alphabetic(*big_text))
+            big_text++;
+        big_text += insert_helper(&root, big_text, is_non_alphabetic);
+    }
+}
+
 
 // A recursive function to traverse Ternary Search Tree
 static void traverseTSTUtil(struct Node *root, char* buffer, int depth)
@@ -123,8 +149,7 @@ int search_helper(struct Node *root, char *word)
     else if (*word > root->data)
         return search_helper(root->right, word);
 
-    else
-    {
+    else {
         // words end on anything that isn't a letter
         char c = *(word + 1);
         if (c < 'A' || (c > 'Z' && c < 'a') || c > 'z')
